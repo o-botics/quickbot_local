@@ -16,6 +16,7 @@ Currently setup for tank drive.
 
 import pygame
 import socket
+import sys
 
 sendFlag = True
 
