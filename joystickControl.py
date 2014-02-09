@@ -112,6 +112,9 @@ while done==False:
     for event in pygame.event.get(): # User did something
         if event.type == pygame.QUIT: # If user clicked close
             done=True # Flag that we are done so we exit this loop
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                done=True
 
         # Possible joystick actions: JOYAXISMOTION JOYBALLMOTION JOYBUTTONDOWN JOYBUTTONUP JOYHATMOTION
         # if event.type == pygame.JOYBUTTONDOWN:
@@ -150,22 +153,25 @@ while done==False:
         textPrint.printScreen(screen, "Number of axes: {}".format(axes) )
         textPrint.indent()
 
-        for i in range( axes ):
-            axis[i] = joystick.get_axis( i )
-            textPrint.printScreen(screen, "Axis {} value: {:>6.3f}".format(i, axis[i]) )
-            pwm = mapAxisToPWM(axis[i])
-            # pwm = int(-100*axis[i])
-            # if pwm > -20 and pwm < 20:
-            #     pwm = 0
-            if i == 1:
-                pwm_left = pwm
-            if i == 3:
-                pwm_right = pwm
-        cmdStr = "$PWM=" +  str(pwm_left) + "," + str(pwm_right) + "*\n"
-        textPrint.printScreen(screen, cmdStr)
-        textPrint.unindent()
-        if sendFlag:
-            sock.sendto(cmdStr, (HOST, PORT))
+        if i == 0:
+            for i in range( axes ):
+                axis[i] = joystick.get_axis( i )
+                textPrint.printScreen(screen, "Axis {} value: {:>6.3f}".format(i, axis[i]) )
+                pwm = mapAxisToPWM(axis[i])
+                if i == 1:
+                    pwm_left = pwm
+                if i == 3:
+                    pwm_right = pwm
+
+            textPrint.unindent()
+            textPrint.unindent()
+            cmdStr = "QuickBot Command:"
+            textPrint.printScreen(screen, cmdStr)
+            cmdStr = "$PWM=" +  str(pwm_left) + "," + str(pwm_right) + "*\n"
+            textPrint.printScreen(screen, cmdStr)
+            textPrint.unindent()
+            if sendFlag:
+                sock.sendto(cmdStr, (HOST, PORT))
 
         # buttons = joystick.get_numbuttons()
         # textPrint.printScreen(screen, "Number of buttons: {}".format(buttons) )
@@ -196,7 +202,7 @@ while done==False:
     pygame.display.flip()
 
     # Limit to 20 frames per second
-    clock.tick(10)
+    clock.tick(20)
 
 # Close the window and quit.
 # If you forget this line, the program will 'hang'
