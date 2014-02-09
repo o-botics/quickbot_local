@@ -9,20 +9,27 @@ Currently setup for tank drive.
 @date 12/10/2013
 
 @note Does not work with 64-bit python
+This code was modified from http://www.pygame.org/docs/ref/joystick.html
 
 @version: 1.0
 @copyright: Copyright (C) 2014, Georgia Tech Research Corporation see the LICENSE file included with this software (see LINENSE file)
 """
 
+import numpy as np
 import pygame
 import socket
 import sys
 
-sendFlag = True
 
+# Parameters
+sendFlag = True
+pwmMinVal = 45
+pwmMaxVal = 100
+axisMinVal = 0.2
+
+# Get input arguments
 HOST = "192.168.1.101"
 PORT = 5005
-
 if len(sys.argv) > 2:
     print 'Invalid number of command line arguments.'
     print 'Proper syntax:'
@@ -36,6 +43,19 @@ if len(sys.argv) == 2:
 
 if sendFlag:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+# Helper functions
+def mapAxisToPWM(axisVal):
+    # Axis: -1 -> PWM: pwmMaxVal
+    # Axis: -axisMinVal -> pwmMinVal
+
+    if np.abs(axisVal) < axisMinVal:
+        pwm = 0
+    else:
+        scaling = (pwmMaxVal - pwmMinVal) / (1.0 - axisMinVal)
+        pwm = -scaling * (axisVal - np.sign(axisVal)*axisMinVal) - np.sign(axisVal)*pwmMinVal
+
+    return int(pwm)
 
 # Define some colors
 BLACK    = (   0,   0,   0)
@@ -72,7 +92,7 @@ pygame.init()
 size = [500, 700]
 screen = pygame.display.set_mode(size)
 
-pygame.display.set_caption("My Game")
+pygame.display.set_caption("QuickBot Joystick Control")
 
 #Loop until the user clicks the close button.
 done = False
@@ -133,9 +153,10 @@ while done==False:
         for i in range( axes ):
             axis[i] = joystick.get_axis( i )
             textPrint.printScreen(screen, "Axis {} value: {:>6.3f}".format(i, axis[i]) )
-            pwm = int(-100*axis[i])
-            if pwm > -20 and pwm < 20:
-                pwm = 0
+            pwm = mapAxisToPWM(axis[i])
+            # pwm = int(-100*axis[i])
+            # if pwm > -20 and pwm < 20:
+            #     pwm = 0
             if i == 1:
                 pwm_left = pwm
             if i == 3:
