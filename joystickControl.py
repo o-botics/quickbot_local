@@ -2,18 +2,38 @@
 """
 @brief Joystick control for the QuickBot.
 
-@author Rowland O'Flaherty @date 12/10/2013
+@description This program is used to drive the QuickBot via a joystick (actually gamepad).
+Currently setup for tank drive.
+
+@author Rowland O'Flaherty (rowlandoflaherty.com)
+@date 12/10/2013
 
 @note Does not work with 64-bit python
+
+@version: 1.0
+@copyright: Copyright (C) 2014, Georgia Tech Research Corporation see the LICENSE file included with this software (see LINENSE file)
 """
+
 import pygame
 import socket
 
 sendFlag = True
 
+HOST = "192.168.1.101"
+PORT = 5005
+
+if len(sys.argv) > 2:
+    print 'Invalid number of command line arguments.'
+    print 'Proper syntax:'
+    print '>> joystickControl.py robotIP'
+    print 'Example:'
+    print '>> QuickBotRun.py ', HOST
+    sys.exit()
+
+if len(sys.argv) == 2:
+    HOST = sys.argv[1]
+
 if sendFlag:
-    HOST = "192.168.1.103"
-    PORT = 5005
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Define some colors
