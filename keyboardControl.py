@@ -11,7 +11,8 @@
 This code was modified from http://www.pygame.org/docs/ref/joystick.html
 
 @version: 1.0
-@copyright: Copyright (C) 2014, Georgia Tech Research Corporation see the LICENSE file included with this software (see LINENSE file)
+@copyright: Copyright (C) 2014, Georgia Tech Research Corporation see
+the LICENSE file included with this software (see LINENSE file)
 """
 
 import numpy as np
@@ -44,9 +45,10 @@ if len(sys.argv) > 2:
 if len(sys.argv) == 2:
     HOST = sys.argv[1]
 
+
 class QuickBot:
     # Parameters -- (LEFT, RIGHT)
-    pwmMinVal = [45, 45]
+    pwmMinVal = [35, 35]
     pwmMaxVal = [100, 100]
 
     # State -- (LEFT, RIGHT)
@@ -63,20 +65,21 @@ class QuickBot:
     def update(self):
         # Slow down
         slowDownRate = 2
-        for side in range(0,2):
+        for side in range(0, 2):
             if self.pwm[side] > 0:
-                self.accelerateByVal(-1*slowDownRate,side)
+                self.accelerateByVal(-1*slowDownRate, side)
             elif self.pwm[side] < 0:
-                self.accelerateByVal(slowDownRate,side)
+                self.accelerateByVal(slowDownRate, side)
 
-    def accelerate(self,dir,side):
-        self.accelerateByVal(dir*self.pwmDelta[side],side)
+    def accelerate(self, dir, side):
+        self.accelerateByVal(dir*self.pwmDelta[side], side)
 
-    def accelerateByVal(self,val,side):
+    def accelerateByVal(self, val, side):
+        way = np.sign(val)
         if self.pwm[side] == 0:
-            self.pwm[side] = np.sign(val)*self.pwmMinVal[side]
-        elif (self.pwm[side] == self.pwmMinVal[side] and np.sign(val) < 0) or \
-            (self.pwm[side] == -1*self.pwmMinVal[side] and np.sign(val) > 0):
+            self.pwm[side] = way*self.pwmMinVal[side]
+        elif (self.pwm[side] == self.pwmMinVal[side] and way < 0) or (
+                self.pwm[side] == -1*self.pwmMinVal[side] and way > 0):
             self.pwm[side] = 0
         else:
             self.pwm[side] = self.pwm[side] + val
@@ -86,21 +89,44 @@ class QuickBot:
         elif self.pwm[side] < 0:
             self.pwm[side] = max(self.pwm[side], -1*self.pwmMaxVal[side])
 
-    def send(self):
-        cmdStr = "$PWM=" +  str(QB.pwm[LEFT]) + "," + str(QB.pwm[RIGHT]) + "*\n"
+    def send(self, cmdStr):
         if SEND_FLAG:
             self.sock.sendto(cmdStr, (HOST, PORT))
+
+    def setPWM(self):
+        cmdStr = "$PWM=" + str(QB.pwm[LEFT]) + "," + \
+            str(QB.pwm[RIGHT]) + "*\n"
+        self.send(cmdStr)
+
+    def getIR(self):
+        cmdStr = "$IR?*\n"
+        self.send(cmdStr)
+
+    def getEncoderVal(self):
+        cmdStr = "$ENVAL?*\n"
+        self.send(cmdStr)
+
+    def resetEncoder(self):
+        cmdStr = "$RESET*\n"
+        self.send(cmdStr)
+
+    def end(self):
+        cmdStr = "$END*\n"
+        self.send(cmdStr)
 
 QB = QuickBot()
 
 # Define some colors
-BLACK    = (   0,   0,   0)
-WHITE    = ( 255, 255, 255)
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
 
-# This is a simple class that will help us print to the screen
-# It has nothing to do with the joysticks, just outputing the
-# information.
+
 class TextPrint:
+    """
+    This is a simple class that will help us print to the screen
+    It has nothing to do with the joysticks, just outputing the
+    information.
+    """
     def __init__(self):
         self.reset()
         self.font = pygame.font.Font(None, 20)
@@ -123,15 +149,15 @@ class TextPrint:
 
 
 pygame.init()
-pygame.key.set_repeat(10, 1)
+pygame.key.set_repeat(60, 3)  # delay (ms), repeat (ms)
 
 # Set timers
-pygame.time.set_timer(UPDATE_TIMER, 20) # Timer period in milliseconds
-pygame.time.set_timer(SEND_TIMER, 200) # Timer period in milliseconds
+# pygame.time.set_timer(UPDATE_TIMER, 20) # Timer period in milliseconds
+# pygame.time.set_timer(SEND_TIMER, 200) # Timer period in milliseconds
 
 
 # Set the width and height of the screen [width,height]
-size = [500, 700]
+size = [500, 300]
 screen = pygame.display.set_mode(size)
 
 pygame.display.set_caption("QuickBot Keyboard Control")
@@ -147,33 +173,81 @@ clock = pygame.time.Clock()
 textPrint = TextPrint()
 
 # -------- Main Program Loop -----------
-while done==False:
+while done is False:
     # EVENT PROCESSING STEP
-    for event in pygame.event.get(): # User did something
-        if event.type == pygame.QUIT: # If user clicked close
-            done=True # Flag that we are done so we exit this loop
-        elif event.type == UPDATE_TIMER:
-            QB.update()
-        elif event.type == SEND_TIMER:
-            QB.send()
+    for event in pygame.event.get():  # User did something
+        if event.type == pygame.QUIT:  # If user clicked close
+            done = True  # Flag that we are done so we exit this loop
+        # elif event.type == UPDATE_TIMER:
+        #     QB.update()
+        # elif event.type == SEND_TIMER:
+        #     QB.send()
         elif event.type == pygame.KEYDOWN:
+
+            # End program
             if event.key == pygame.K_ESCAPE:
-                done=True
+                done = True
+
+            # Stop robot
             elif event.key == pygame.K_SPACE:
                 QB.stop()
+                QB.setPWM()
+
+            # Move left wheel
+            elif event.key == pygame.K_a:
+                QB.accelerate(FORWARD, LEFT)
+                QB.setPWM()
+
+            elif event.key == pygame.K_z:
+                QB.accelerate(BACKWARD, LEFT)
+                QB.setPWM()
+
+            # Move right wheel
+            elif event.key == pygame.K_s:
+                QB.accelerate(FORWARD, RIGHT)
+                QB.setPWM()
+
+            elif event.key == pygame.K_x:
+                QB.accelerate(BACKWARD, RIGHT)
+                QB.setPWM()
+
+            # Move forward/backward
             elif event.key == pygame.K_UP:
                 QB.accelerate(FORWARD, LEFT)
                 QB.accelerate(FORWARD, RIGHT)
+                QB.setPWM()
+
             elif event.key == pygame.K_DOWN:
                 QB.accelerate(BACKWARD, LEFT)
                 QB.accelerate(BACKWARD, RIGHT)
+                QB.setPWM()
+
+            # Turn left/right
             elif event.key == pygame.K_LEFT:
                 QB.accelerate(BACKWARD, LEFT)
                 QB.accelerate(FORWARD, RIGHT)
+                QB.setPWM()
+
             elif event.key == pygame.K_RIGHT:
                 QB.accelerate(FORWARD, LEFT)
                 QB.accelerate(BACKWARD, RIGHT)
+                QB.setPWM()
 
+            # Encoder query
+            elif event.key == pygame.K_e:
+                QB.getEncoderVal()
+
+            # Encoder reset
+            elif event.key == pygame.K_r:
+                QB.resetEncoder()
+
+            # IR query
+            elif event.key == pygame.K_i:
+                QB.getIR()
+
+            # End program on BBB
+            elif event.key == pygame.K_q:
+                QB.end()
 
     # DRAWING STEP
     # First, clear the screen to white. Don't put other drawing commands
@@ -187,7 +261,6 @@ while done==False:
     cmdStr = "$PWM=" + str(QB.pwm[LEFT]) + "," + str(QB.pwm[RIGHT]) + "*\n"
     textPrint.printScreen(screen, cmdStr)
 
-
     # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
 
     # Go ahead and update the screen with what we've drawn.
@@ -199,4 +272,4 @@ while done==False:
 # Close the window and quit.
 # If you forget this line, the program will 'hang'
 # on exit if running from IDLE.
-pygame.quit ()
+pygame.quit()
