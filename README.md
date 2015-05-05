@@ -34,3 +34,6 @@ Launch code with BBB on QuickBot IP address (example IP address shown):
 
 ## Notes
 The the joystickControl.py script only works with 32-bit python and does not work with 64-bit python. Notice that the shebang line in the script calls a 32-bit python interpreter. This line may need to be adjusted for your python installation.
+
+There is a consoleControl that works with 64-bit python
+
