@@ -37,7 +37,7 @@ BACKWARD = -1
 SEND_FLAG = True
 
 # Get input arguments
-LOCAL_IP = "192.168.1.161" # Computer IP address (change to correct value)
+LOCAL_IP = "192.168.1.168" # Computer IP address (change to correct value)
 QB_IP = "192.168.1.160" # QuickBot IP address (change to correct value)
 PORT = 5005
 if len(sys.argv) > 2:
@@ -118,6 +118,15 @@ class QuickBot:
         self.cmdStr = "$RESET*\n"
         self.send()
 
+    def healthCheck(self):
+        self.cmdStr = "$CHECK*\n"
+        self.send()
+
+    def calibrate(self):
+        self.pwm[LEFT] = 90
+        self.pwm[RIGHT] = 80
+        self.setPWM()
+
     def end(self):
         self.cmdStr = "$END*\n"
         self.send()
@@ -125,6 +134,7 @@ class QuickBot:
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.setblocking(False)
+print 'Binding to %s %d' % (LOCAL_IP, PORT);
 sock.bind((LOCAL_IP, PORT))
 QB = QuickBot(sock)
 
@@ -169,14 +179,14 @@ class Console:
             self.screen.addstr(self.receivedMsg)
 
             self.screen.addstr(curses.LINES - 3, 0, ' ' * curses.COLS, curses.A_REVERSE)
-            self.screen.addstr(curses.LINES - 3, 0, 'Forward/Backward: i/k, Left/Right: j/l, Stop: space', curses.A_REVERSE)
+            self.screen.addstr(curses.LINES - 3, 0, 'Forward/Backward: up/down arrow, Left/Right: left/righ arrow, Stop: space', curses.A_REVERSE)
 
             self.screen.addstr(curses.LINES - 2, 0, ' ' * curses.COLS, curses.A_REVERSE)
             self.screen.addstr(curses.LINES - 2, 0, 'Left Wheel: a/z, Right Wheel: s/x', curses.A_REVERSE)
 
             self.screen.move(curses.LINES - 1, 0)
             self.screen.addstr(' ' * (curses.COLS - 1), curses.A_REVERSE)
-            self.screen.addstr(curses.LINES - 1, 0, 'Quit: q, Encoder: e, IR: r, Reset Encoder: t', curses.A_REVERSE)
+            self.screen.addstr(curses.LINES - 1, 0, 'Quit: q, Encoder: e, IR: r, Reset Encoder: t, Check Status: c', curses.A_REVERSE)
 
             self.screen.addstr(curses.LINES - 4, 0, '> ')
             self.screen.addstr(self.promptMsg)
@@ -207,42 +217,42 @@ class Console:
                 QB.stop()
                 QB.setPWM()
     
-            # Move left wheel
-            elif c == ord('a'):
+            # Move right wheel
+            elif c == ord('s'):
                 QB.accelerate(FORWARD, LEFT)
                 QB.setPWM()
 
-            elif c == ord('z'):
+            elif c == ord('x'):
                 QB.accelerate(BACKWARD, LEFT)
                 QB.setPWM()
 
-            # Move right wheel
-            elif c == ord('s'):
+            # Move left wheel
+            elif c == ord('a'):
                 QB.accelerate(FORWARD, RIGHT)
                 QB.setPWM()
 
-            elif c == ord('x'):
+            elif c == ord('z'):
                 QB.accelerate(BACKWARD, RIGHT)
                 QB.setPWM()
 
             # Move forward/backward
-            elif c == ord('i'):
+            elif c == curses.KEY_UP:
                 QB.accelerate(FORWARD, LEFT)
                 QB.accelerate(FORWARD, RIGHT)
                 QB.setPWM()
 
-            elif c == ord('k'):
+            elif c == curses.KEY_DOWN:
                 QB.accelerate(BACKWARD, LEFT)
                 QB.accelerate(BACKWARD, RIGHT)
                 QB.setPWM()
 
             # Turn left/right
-            elif c == ord('l'):
+            elif c == curses.KEY_RIGHT:
                 QB.accelerate(BACKWARD, LEFT)
                 QB.accelerate(FORWARD, RIGHT)
                 QB.setPWM()
 
-            elif c == ord('j'):
+            elif c == curses.KEY_LEFT:
                 QB.accelerate(FORWARD, LEFT)
                 QB.accelerate(BACKWARD, RIGHT)
                 QB.setPWM()
@@ -258,6 +268,14 @@ class Console:
             # IR query
             elif c == ord('r'):
                 QB.getIR()
+
+            # Health Check
+            elif c == ord('c'):
+                QB.healthCheck()
+
+            # Calibrate motor
+            elif c == ord('m'):
+                QB.calibrate()
 
             # Don't know this character
             else:
@@ -277,7 +295,7 @@ def poll():
             console.received(data)
         except socket.error as mesg:
             pass
-        time.sleep(0.5)
+        time.sleep(0.1)
 
 
 def main(screen):
